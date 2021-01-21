@@ -3,12 +3,40 @@
  */
 
 /**
+ * Get the currently selected aspect ratio
+ */
+function getAspectRatio() {
+    const value = document.querySelector('input[name="aspect"]:checked').value.split(':');
+    const width = Number(value[0]);
+    const height = Number(value[1]);
+    return width / height;
+}
+
+/**
+ * Convert a diagonal screen size to the screen width using the given aspect ratio
+ */
+function diagonalToWidth(screenSize, aspectRatio) {
+    const hyp = Math.sqrt(aspectRatio * aspectRatio + 1);
+    const width = screenSize * aspectRatio / hyp;
+    return width;
+}
+
+/**
+ * Convert a screen width to the diagonal screen size using the given aspect ratio
+ */
+function widthToDiagonal(screenSize, aspectRatio) {
+    const hyp = Math.sqrt(aspectRatio * aspectRatio + 1);
+    const diagonal = screenSize / aspectRatio * hyp;
+    return diagonal;
+}
+
+/**
  * Figure out the optimum viewing distance given a viewing angle and screen size
  */
 function computeViewingDistance(viewingAngle, screenSize) {
     // Convert the viewing angle to radians
     const viewingAngleRads = viewingAngle / 180.0 * Math.PI;
-    const screenWidth = screenSize / 1.15;
+    const screenWidth = diagonalToWidth(screenSize, getAspectRatio());
     const viewingDistance = screenWidth / (2.0 * Math.tan(viewingAngleRads / 2.0));
     return Math.round(viewingDistance);
 }
@@ -20,41 +48,51 @@ function computeScreenSize(viewingAngle, viewingDistance) {
     // Convert viewing angle to radians
     const viewingAngleRads = viewingAngle / 180.0 * Math.PI;
     const screenWidth = Math.tan(viewingAngleRads / 2.0) * 2.0 * viewingDistance;
-    const screenSize = 1.15 * screenWidth;
+    const screenSize = widthToDiagonal(screenWidth, getAspectRatio());
     return Math.round(screenSize);
 }
 
-window.addEventListener('load', function() {
-    console.log('Setting up events...');
-    document.getElementById('viewing_angle').addEventListener('change', function(e) {
-        const viewingAngle = document.getElementById('viewing_angle').value;
-        const viewingDistance = document.getElementById('viewing_distance').value;
-        const screenSize = document.getElementById('screen_size').value;
-        const lastChanged = document.getElementById('last_changed').value;
-        if (viewingDistance && screenSize) {
-            if (lastChanged === 'viewingDistance') {
-                document.getElementById('screen_size').value = computeScreenSize(
-                    viewingAngle,
-                    viewingDistance
-                );
-            } else {
-                document.getElementById('viewing_distance').value = computeViewingDistance(
-                    viewingAngle,
-                    screenSize
-                );
-            }
-        } else if (viewingDistance) {
+/**
+ * Recompute the screen size or viewing distance
+ */
+function recompute(e) {
+    const viewingAngle = document.getElementById('viewing_angle').value;
+    const viewingDistance = document.getElementById('viewing_distance').value;
+    const screenSize = document.getElementById('screen_size').value;
+    const lastChanged = document.getElementById('last_changed').value;
+    if (viewingDistance && screenSize) {
+        if (lastChanged === 'viewingDistance') {
             document.getElementById('screen_size').value = computeScreenSize(
                 viewingAngle,
                 viewingDistance
             );
-        } else if (screenSize) {
+        } else {
             document.getElementById('viewing_distance').value = computeViewingDistance(
                 viewingAngle,
                 screenSize
             );
         }
-    });
+    } else if (viewingDistance) {
+        document.getElementById('screen_size').value = computeScreenSize(
+            viewingAngle,
+            viewingDistance
+        );
+    } else if (screenSize) {
+        document.getElementById('viewing_distance').value = computeViewingDistance(
+            viewingAngle,
+            screenSize
+        );
+    } else {
+        console.log('Not enough info to recompute');
+    }
+}
+
+window.addEventListener('load', function() {
+    console.log('Setting up events...');
+    document.getElementById('viewing_angle').addEventListener('change', recompute);
+    document.getElementById('aspect_43').addEventListener('change', recompute);
+    document.getElementById('aspect_169').addEventListener('change', recompute);
+    document.getElementById('aspect_2391').addEventListener('change', recompute);
     document.getElementById('viewing_distance').addEventListener('change', function(e) {
         const viewingAngle = document.getElementById('viewing_angle').value;
         const viewingDistance = document.getElementById('viewing_distance').value;
