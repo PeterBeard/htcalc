@@ -53,38 +53,68 @@ function computeScreenSize(viewingAngle, viewingDistance) {
 }
 
 /**
+ * Determine the best resolution for the given screen size and viewing distance
+ * (assumes visual acuity of 1/60 degree)
+ */
+function computeOptimalResolution(screenSize, viewingDistance) {
+    // Figure out the screen's viewing angle
+    const screenWidth = diagonalToWidth(screenSize, getAspectRatio());
+    const degToRad = 180.0 / Math.PI;
+    const viewingAngle = 2.0 * degToRad * Math.atan((screenWidth / 2.0) / viewingDistance);
+    // Multiply the viewing angle by 60 to figure out the number of horizontal pixels
+    const pixelCount = viewingAngle * 60.0;
+    if (pixelCount <= 640) {
+        return '480p';
+    } else if (pixelCount <= 1280) {
+        return '720p';
+    } else if (pixelCount <= 1920) {
+        return '1080p';
+    } else if (pixelCount <= 3840) {
+        return '4k';
+    } else {
+        return '8k';
+    }
+}
+
+/**
  * Recompute the screen size or viewing distance
  */
 function recompute(e) {
-    const viewingAngle = document.getElementById('viewing_angle').value;
-    const viewingDistance = document.getElementById('viewing_distance').value;
-    const screenSize = document.getElementById('screen_size').value;
+    let viewingAngle = document.getElementById('viewing_angle').value;
+    let viewingDistance = document.getElementById('viewing_distance').value;
+    let screenSize = document.getElementById('screen_size').value;
     const lastChanged = document.getElementById('last_changed').value;
     if (viewingDistance && screenSize) {
         if (lastChanged === 'viewingDistance') {
-            document.getElementById('screen_size').value = computeScreenSize(
+            screenSize = computeScreenSize(
                 viewingAngle,
                 viewingDistance
             );
+            document.getElementById('screen_size').value = screenSize;
         } else {
-            document.getElementById('viewing_distance').value = computeViewingDistance(
+            viewingDistance = computeViewingDistance(
                 viewingAngle,
                 screenSize
             );
+            document.getElementById('viewing_distance').value = viewingDistance;
         }
     } else if (viewingDistance) {
-        document.getElementById('screen_size').value = computeScreenSize(
+        screenSize = computeScreenSize(
             viewingAngle,
             viewingDistance
         );
+        document.getElementById('screen_size').value = screenSize;
     } else if (screenSize) {
-        document.getElementById('viewing_distance').value = computeViewingDistance(
+        viewingDistance = computeViewingDistance(
             viewingAngle,
             screenSize
         );
+        document.getElementById('viewing_distance').value = viewingDistance;
     } else {
         console.log('Not enough info to recompute');
     }
+    document.getElementById('optimal_resolution').innerHTML = computeOptimalResolution(
+        screenSize, viewingDistance);
 }
 
 window.addEventListener('load', function() {
@@ -96,19 +126,25 @@ window.addEventListener('load', function() {
     document.getElementById('viewing_distance').addEventListener('change', function(e) {
         const viewingAngle = document.getElementById('viewing_angle').value;
         const viewingDistance = document.getElementById('viewing_distance').value;
-        document.getElementById('screen_size').value = computeScreenSize(
+        const screenSize = computeScreenSize(
             viewingAngle,
             viewingDistance
         );
+        document.getElementById('screen_size').value = screenSize;
+        document.getElementById('optimal_resolution').innerHTML = computeOptimalResolution(
+            screenSize, viewingDistance);
         document.getElementById('last_changed').value = 'viewingDistance';
     });
     document.getElementById('screen_size').addEventListener('change', function(e) {
         const viewingAngle = document.getElementById('viewing_angle').value;
         const screenSize = document.getElementById('screen_size').value;
-        document.getElementById('viewing_distance').value = computeViewingDistance(
+        const viewingDistance = computeViewingDistance(
             viewingAngle,
             screenSize
         );
+        document.getElementById('viewing_distance').value = viewingDistance;
+        document.getElementById('optimal_resolution').innerHTML = computeOptimalResolution(
+            screenSize, viewingDistance);
         document.getElementById('last_changed').value = 'screenSize';
     });
     console.log('htCalc is ready.');
